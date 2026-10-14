@@ -60,4 +60,11 @@ func TestServerAnswersAfterSubscriptionCancelledWithNotificationsQueued(t *testi
 		pcancel()
 		require.NoError(t, err, "round %d: the server stopped answering after a subscription was cancelled", round)
 	}
+
+	// The deadlock only shows once the message loop reaches the next CreateSubscription, which
+	// each round's Subscribe provides for the round before it. Give the last round one too.
+	fctx, fcancel := context.WithTimeout(ctx, 5*time.Second)
+	defer fcancel()
+	_, err = c.Subscribe(fctx, &opcua.SubscriptionParameters{Interval: time.Second}, make(chan *opcua.PublishNotificationData, 1))
+	require.NoError(t, err, "subscribe after the last cancel")
 }
